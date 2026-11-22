@@ -1,9 +1,8 @@
 # yt-dlp GUI bootstrapper
-# Run with:  irm https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/install.ps1 | iex
+# Run with:  irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
 
 function Invoke-YtdlMenu {
-    # >>> EDIT THESE TWO LINES <<<
-    $RepoRaw = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main"
+    $RepoRaw = "https://raw.githubusercontent.com/MansoorRaj/Batchy/main"
     $ScriptName = "ytdl_gui.py"
 
     $ErrorActionPreference = "Stop"
@@ -15,6 +14,17 @@ function Invoke-YtdlMenu {
     $Script = Join-Path $Home_ $ScriptName
     New-Item -ItemType Directory -Force -Path $Home_ | Out-Null
 
+    # Runs a native command without PS 5.1 turning its stderr output into a terminating error.
+    # Returns the exit code.
+    function Run-Native {
+        param([string]$Exe, [string[]]$ArgList)
+        $old = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try { & $Exe @ArgList 2>&1 | Out-Null } catch { }
+        finally { $ErrorActionPreference = $old }
+        return $LASTEXITCODE
+    }
+
     function Refresh-Path {
         $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
                     [Environment]::GetEnvironmentVariable("Path", "User")
@@ -22,8 +32,8 @@ function Invoke-YtdlMenu {
 
     function Test-Python($exe) {
         try {
-            & $exe -c "import sys, tkinter; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>$null
-            return ($LASTEXITCODE -eq 0)
+            $code = Run-Native $exe @("-c", "import sys, tkinter; sys.exit(0 if sys.version_info >= (3, 10) else 1)")
+            return ($code -eq 0)
         } catch { return $false }
     }
 
@@ -42,8 +52,8 @@ function Invoke-YtdlMenu {
     if (-not $py) {
         Write-Host "Python 3.10+ not found - installing..." -ForegroundColor Cyan
         if (Get-Command winget -ErrorAction SilentlyContinue) {
-            winget install -e --id Python.Python.3.12 --scope user --silent `
-                --accept-package-agreements --accept-source-agreements | Out-Null
+            Run-Native "winget" @("install", "-e", "--id", "Python.Python.3.12", "--scope", "user",
+                "--silent", "--accept-package-agreements", "--accept-source-agreements") | Out-Null
         } else {
             $installer = Join-Path $env:TEMP "python-installer.exe"
             Invoke-WebRequest "https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe" `
@@ -60,10 +70,9 @@ function Invoke-YtdlMenu {
     $hasJs = (Get-Command deno -ErrorAction SilentlyContinue) -or (Get-Command node -ErrorAction SilentlyContinue)
     if (-not $hasJs -and (Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Host "Installing Deno (needed for YouTube)..." -ForegroundColor Cyan
-        try {
-            winget install -e --id DenoLand.Deno --silent --accept-package-agreements --accept-source-agreements | Out-Null
-            Refresh-Path
-        } catch { Write-Host "Deno install skipped." -ForegroundColor Yellow }
+        Run-Native "winget" @("install", "-e", "--id", "DenoLand.Deno", "--silent",
+            "--accept-package-agreements", "--accept-source-agreements") | Out-Null
+        Refresh-Path
     }
 
     # ---- 3. Virtual environment + yt-dlp ------------------------------------
@@ -71,20 +80,17 @@ function Invoke-YtdlMenu {
     $venvPyw = Join-Path $Venv "Scripts\pythonw.exe"
     if (-not (Test-Path $venvPy)) {
         Write-Host "Creating environment..." -ForegroundColor Cyan
-        & $py -m venv $Venv
+        $code = Run-Native $py @("-m", "venv", $Venv)
+        if ($code -ne 0 -or -not (Test-Path $venvPy)) { throw "Could not create the virtual environment." }
     }
+
     Write-Host "Installing/updating yt-dlp (first run can take a minute)..." -ForegroundColor Cyan
-    # Native stderr must not be treated as a terminating error in PS 5.1
-    $ErrorActionPreference = "Continue"
-    & $venvPy -m pip install --upgrade --disable-pip-version-check "yt-dlp[default,curl-cffi]" 2>&1 |
-        ForEach-Object { "$_" } | Select-String -Pattern "ERROR|Successfully" | ForEach-Object { Write-Host "  $_" }
-    if ($LASTEXITCODE -ne 0) {
+    $code = Run-Native $venvPy @("-m", "pip", "install", "--upgrade", "--disable-pip-version-check", "yt-dlp[default,curl-cffi]")
+    if ($code -ne 0) {
         Write-Host "Retrying without curl-cffi..." -ForegroundColor Yellow
-        & $venvPy -m pip install --upgrade --disable-pip-version-check "yt-dlp[default]" 2>&1 |
-            ForEach-Object { "$_" } | Select-String -Pattern "ERROR|Successfully" | ForEach-Object { Write-Host "  $_" }
-        if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = "Stop"; throw "pip could not install yt-dlp." }
+        $code = Run-Native $venvPy @("-m", "pip", "install", "--upgrade", "--disable-pip-version-check", "yt-dlp[default]")
+        if ($code -ne 0) { throw "pip could not install yt-dlp." }
     }
-    $ErrorActionPreference = "Stop"
 
     # ---- 4. Fetch the latest app script (fall back to cached copy) ----------
     try {
@@ -100,10 +106,11 @@ function Invoke-YtdlMenu {
     Start-Sleep -Seconds 4
     if ($proc.HasExited) {
         Write-Host "The app closed right away - running it with a console to show the error:" -ForegroundColor Yellow
+        $old = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
         & $venvPy $Script
-        $ErrorActionPreference = "Stop"
+        $ErrorActionPreference = $old
     }
 }
 
-try { Invoke-YtdlMenu } catch { Write-Host "Error: $_" -ForegroundColor Red }
+try { Invoke-YtdlMenu } catch { Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red }
