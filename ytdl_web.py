@@ -528,7 +528,7 @@ PAGE = r"""<!doctype html>
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Downloader</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -544,7 +544,8 @@ PAGE = r"""<!doctype html>
 </script>
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <style>
-  html { color-scheme: dark; }
+  html { color-scheme: dark; font-size: 17px; -webkit-text-size-adjust: 100%; }
+  @media (min-width: 1024px) { html { font-size: 18px; } }
   @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
   .indet { width: 35% !important; animation: slide 1.1s ease-in-out infinite; }
   textarea { field-sizing: content; }
@@ -552,49 +553,48 @@ PAGE = r"""<!doctype html>
 </style>
 </head>
 <body class="min-h-screen bg-zinc-950 font-sans text-zinc-200 antialiased">
-<div class="fixed inset-x-0 top-0 z-20 h-0.5 bg-transparent">
+<div class="fixed inset-x-0 top-0 z-20 h-1 bg-transparent">
   <div id="overall" class="h-full w-0 bg-indigo-400 transition-all duration-500"></div>
 </div>
 
-<main class="mx-auto max-w-2xl px-5 pb-24 pt-10">
+<main class="mx-auto w-full max-w-3xl px-4 pb-28 pt-8 sm:px-8 sm:pt-14">
 
   <!-- header -->
-  <header class="flex items-center gap-3">
-    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 ring-1 ring-zinc-800">
-      <i data-lucide="arrow-down-to-line" class="h-4 w-4 text-indigo-400"></i>
+  <header class="flex items-center gap-3 sm:gap-4">
+    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800 sm:h-12 sm:w-12">
+      <i data-lucide="arrow-down-to-line" class="h-5 w-5 text-indigo-400"></i>
     </div>
-    <div class="flex-1">
-      <h1 class="text-[15px] font-semibold tracking-tight text-zinc-100">Downloader</h1>
-      <p class="text-xs text-zinc-500">Best video + best audio</p>
+    <div class="min-w-0 flex-1">
+      <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-100 sm:text-2xl">Downloader</h1>
+      <p class="truncate text-sm text-zinc-500">Best video + best audio</p>
     </div>
-    <button id="settingsBtn" title="Settings" class="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
-      <i data-lucide="sliders-horizontal" class="h-4 w-4"></i>
+    <button id="settingsBtn" title="Settings" class="rounded-xl p-2.5 text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
+      <i data-lucide="sliders-horizontal" class="h-5 w-5"></i>
     </button>
-    <button id="quit" title="Quit" class="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-900 hover:text-red-400">
-      <i data-lucide="power" class="h-4 w-4"></i>
+    <button id="quit" title="Quit" class="rounded-xl p-2.5 text-zinc-500 transition hover:bg-zinc-900 hover:text-red-400">
+      <i data-lucide="power" class="h-5 w-5"></i>
     </button>
   </header>
 
-  <div id="tools" class="mt-4 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-500"></div>
-  <div id="setup" class="mt-4 hidden items-center gap-2 text-xs text-amber-300/90">
-    <span id="setupIcon"></span><span id="setupText"></span>
+  <div id="setup" class="mt-5 hidden items-center gap-2 text-sm text-amber-300/90">
+    <span id="setupIcon"></span><span id="setupText" class="min-w-0 truncate"></span>
   </div>
-  <div id="fatal" class="mt-4 hidden rounded-xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300"></div>
+  <div id="fatal" class="mt-5 hidden rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300"></div>
 
   <!-- input -->
-  <section class="mt-6">
-    <div class="rounded-2xl bg-zinc-900 p-2 ring-1 ring-zinc-800 transition focus-within:ring-zinc-600">
+  <section class="mt-7 sm:mt-9">
+    <div class="rounded-3xl bg-zinc-900 p-2.5 ring-1 ring-zinc-800 transition focus-within:ring-zinc-600">
       <textarea id="links" rows="2" spellcheck="false"
         placeholder="Paste one or more links…"
-        class="max-h-48 min-h-[56px] w-full resize-none bg-transparent px-3 py-2 font-mono text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none"></textarea>
-      <div class="flex items-center justify-between px-1 pb-1">
-        <span class="px-2 text-[11px] text-zinc-600">Ctrl + Enter to add</span>
-        <div class="flex gap-1.5">
-          <button id="paste" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100">
-            <i data-lucide="clipboard-paste" class="h-3.5 w-3.5"></i>Paste
+        class="max-h-56 min-h-[72px] w-full resize-none bg-transparent px-3.5 py-3 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none sm:text-base"></textarea>
+      <div class="flex items-center justify-between gap-2 px-1 pb-1">
+        <span class="hidden px-2 text-xs text-zinc-600 sm:inline">Ctrl + Enter to add</span>
+        <div class="flex w-full gap-2 sm:w-auto">
+          <button id="paste" class="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100 sm:flex-none">
+            <i data-lucide="clipboard-paste" class="h-4 w-4"></i>Paste
           </button>
-          <button id="add" class="flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 transition hover:bg-white">
-            <i data-lucide="plus" class="h-3.5 w-3.5"></i>Add
+          <button id="add" class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-100 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-white sm:flex-none">
+            <i data-lucide="plus" class="h-4 w-4"></i>Add
           </button>
         </div>
       </div>
@@ -602,38 +602,38 @@ PAGE = r"""<!doctype html>
   </section>
 
   <!-- settings -->
-  <section id="settings" class="mt-3 hidden rounded-2xl bg-zinc-900/60 p-4 ring-1 ring-zinc-800">
-    <div class="space-y-4">
+  <section id="settings" class="mt-3 hidden rounded-3xl bg-zinc-900/60 p-4 ring-1 ring-zinc-800 sm:p-5">
+    <div class="space-y-5">
       <div>
-        <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-500">Save to</label>
-        <div class="flex gap-1.5">
+        <label class="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">Save to</label>
+        <div class="flex gap-2">
           <input id="dir" type="text" spellcheck="false"
-            class="min-w-0 flex-1 rounded-lg bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-200 ring-1 ring-zinc-800 focus:outline-none focus:ring-zinc-600">
-          <button id="browse" title="Browse" class="rounded-lg bg-zinc-800 px-2.5 text-zinc-300 transition hover:bg-zinc-700"><i data-lucide="folder" class="h-4 w-4"></i></button>
-          <button id="open" title="Open folder" class="rounded-lg bg-zinc-800 px-2.5 text-zinc-300 transition hover:bg-zinc-700"><i data-lucide="folder-open" class="h-4 w-4"></i></button>
+            class="min-w-0 flex-1 rounded-xl bg-zinc-950 px-3.5 py-2.5 font-mono text-sm text-zinc-200 ring-1 ring-zinc-800 focus:outline-none focus:ring-zinc-600">
+          <button id="browse" title="Browse" class="rounded-xl bg-zinc-800 px-3.5 text-zinc-300 transition hover:bg-zinc-700"><i data-lucide="folder" class="h-5 w-5"></i></button>
+          <button id="open" title="Open folder" class="rounded-xl bg-zinc-800 px-3.5 text-zinc-300 transition hover:bg-zinc-700"><i data-lucide="folder-open" class="h-5 w-5"></i></button>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-x-8 gap-y-4">
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-8">
         <div>
-          <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-500">Container</label>
-          <div class="inline-flex rounded-lg bg-zinc-950 p-0.5 ring-1 ring-zinc-800" id="seg">
-            <button data-v="mkv" class="rounded-md px-3.5 py-1 font-mono text-xs transition">mkv</button>
-            <button data-v="mp4" class="rounded-md px-3.5 py-1 font-mono text-xs transition">mp4</button>
+          <label class="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">Container</label>
+          <div class="flex rounded-xl bg-zinc-950 p-1 ring-1 ring-zinc-800" id="seg">
+            <button data-v="mkv" class="flex-1 rounded-lg px-4 py-2 font-mono text-sm transition">mkv</button>
+            <button data-v="mp4" class="flex-1 rounded-lg px-4 py-2 font-mono text-sm transition">mp4</button>
           </div>
         </div>
 
-        <div class="min-w-[220px] flex-1">
-          <div class="mb-1.5 flex items-center justify-between">
-            <label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">aria2c fast mode</label>
+        <div>
+          <div class="mb-2 flex items-center justify-between">
+            <label class="text-xs font-medium uppercase tracking-wider text-zinc-500">aria2c fast mode</label>
             <label class="relative inline-flex cursor-pointer items-center">
               <input id="aria" type="checkbox" class="peer sr-only">
-              <div class="h-5 w-9 rounded-full bg-zinc-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:bg-indigo-500 peer-checked:after:translate-x-4 peer-disabled:opacity-40"></div>
+              <div class="h-6 w-11 rounded-full bg-zinc-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:bg-indigo-500 peer-checked:after:translate-x-5 peer-disabled:opacity-40"></div>
             </label>
           </div>
-          <div class="flex items-center gap-3">
-            <input id="conn" type="range" min="1" max="16" class="h-1 flex-1 cursor-pointer accent-indigo-500 disabled:opacity-40">
-            <span id="connv" class="w-10 text-right font-mono text-xs text-zinc-400">16×</span>
+          <div class="flex items-center gap-3 py-2">
+            <input id="conn" type="range" min="1" max="16" class="h-1.5 flex-1 cursor-pointer accent-indigo-500 disabled:opacity-40">
+            <span id="connv" class="w-10 text-right font-mono text-sm text-zinc-400">16×</span>
           </div>
         </div>
       </div>
@@ -641,36 +641,40 @@ PAGE = r"""<!doctype html>
   </section>
 
   <!-- queue -->
-  <section class="mt-8">
-    <div class="mb-2 flex items-center px-1">
-      <h2 class="text-xs font-medium uppercase tracking-wider text-zinc-500">Queue</h2>
-      <span id="count" class="ml-2 font-mono text-[11px] text-zinc-600"></span>
-      <button id="clear" class="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
-        <i data-lucide="trash-2" class="h-3 w-3"></i>Clear finished
+  <section class="mt-9 sm:mt-11">
+    <div class="mb-3 flex items-center px-1">
+      <h2 class="text-sm font-medium uppercase tracking-wider text-zinc-500">Queue</h2>
+      <span id="count" class="ml-3 font-mono text-xs text-zinc-600"></span>
+      <button id="clear" class="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
+        <i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span class="hidden sm:inline">Clear finished</span><span class="sm:hidden">Clear</span>
       </button>
     </div>
 
-    <div id="list" class="divide-y divide-zinc-800/70 overflow-hidden rounded-2xl bg-zinc-900/50 ring-1 ring-zinc-800 empty:hidden"></div>
+    <div id="list" class="divide-y divide-zinc-800/70 overflow-hidden rounded-3xl bg-zinc-900/50 ring-1 ring-zinc-800 empty:hidden"></div>
 
-    <div id="empty" class="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-800 py-12 text-zinc-600">
-      <i data-lucide="link" class="h-5 w-5"></i>
-      <span class="text-sm">Nothing queued</span>
+    <div id="empty" class="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-zinc-800 py-14 text-zinc-600 sm:py-16">
+      <i data-lucide="link" class="h-6 w-6"></i>
+      <span class="text-base">Nothing queued</span>
     </div>
   </section>
 
   <!-- actions -->
-  <section class="mt-6 flex items-center gap-2">
-    <button id="start" disabled class="flex items-center gap-2 rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/10 transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
-      <i data-lucide="download" class="h-4 w-4"></i>Download queue
-    </button>
-    <button id="stop" disabled class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-300 ring-1 ring-zinc-800 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:text-zinc-600">
-      <i data-lucide="square" class="h-3.5 w-3.5"></i>Stop
-    </button>
-    <span id="msg" class="ml-2 truncate text-xs text-zinc-500"></span>
+  <section class="mt-7">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="flex gap-3">
+        <button id="start" disabled class="flex flex-1 items-center justify-center gap-2.5 rounded-2xl bg-indigo-500 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/10 transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none sm:flex-none">
+          <i data-lucide="download" class="h-5 w-5"></i>Download queue
+        </button>
+        <button id="stop" disabled class="flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-base font-medium text-zinc-300 ring-1 ring-zinc-800 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:text-zinc-600">
+          <i data-lucide="square" class="h-4 w-4"></i>Stop
+        </button>
+      </div>
+      <span id="msg" class="min-w-0 text-sm text-zinc-500 sm:ml-2 sm:truncate"></span>
+    </div>
   </section>
 </main>
 
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-3 rounded-xl bg-zinc-800 px-4 py-2 text-xs text-zinc-100 opacity-0 shadow-xl ring-1 ring-zinc-700 transition duration-200"></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-30 w-max max-w-[90vw] -translate-x-1/2 translate-y-3 rounded-2xl bg-zinc-800 px-5 py-3 text-sm text-zinc-100 opacity-0 shadow-xl ring-1 ring-zinc-700 transition duration-200"></div>
 
 <script>
 const TOKEN = "__TOKEN__";
@@ -678,7 +682,7 @@ const $ = s => document.querySelector(s);
 const ICON = {queued:"clock", waiting:"clock", running:"loader-circle", done:"check", failed:"circle-alert"};
 const TONE = {queued:"text-zinc-500", waiting:"text-zinc-500", running:"text-indigo-400", done:"text-emerald-400", failed:"text-red-400"};
 
-function icon(el, name, cls){ el.innerHTML = '<i data-lucide="'+name+'" class="h-4 w-4 '+(cls||"")+'"></i>'; lucide.createIcons(); }
+function icon(el, name, cls, size){ el.innerHTML = '<i data-lucide="'+name+'" class="'+(size||"h-5 w-5")+' '+(cls||"")+'"></i>'; lucide.createIcons(); }
 function h(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
 
 let toastTimer;
@@ -701,23 +705,25 @@ const els = new Map();
 let cfg = null, last = null;
 
 function makeItem(it){
-  const root = h("div","group relative px-4 py-3");
-  const row = h("div","flex items-center gap-3");
+  const root = h("div","group relative px-4 py-4 sm:px-5");
+  const row = h("div","flex items-center gap-3 sm:gap-4");
   const ic = h("span","shrink-0");
   const mid = h("div","min-w-0 flex-1");
-  const title = h("div","truncate text-[13px] font-medium text-zinc-100");
-  const meta = h("div","truncate font-mono text-[11px] text-zinc-600");
+  const title = h("div","truncate text-base font-medium text-zinc-100");
+  const meta = h("div","mt-0.5 flex min-w-0 items-center gap-2 text-xs");
+  const status = h("span","shrink-0 font-mono");
+  const url = h("span","min-w-0 truncate font-mono text-zinc-600");
+  meta.append(status, url);
   mid.append(title, meta);
-  const status = h("span","max-w-[40%] shrink-0 truncate font-mono text-[11px]");
-  const x = h("button","shrink-0 rounded-md p-1 text-zinc-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100 disabled:hidden");
-  x.title = "Remove"; icon(x,"x");
+  const x = h("button","shrink-0 rounded-lg p-2 text-zinc-600 transition hover:text-red-400 disabled:hidden sm:opacity-0 sm:group-hover:opacity-100");
+  x.title = "Remove"; icon(x,"x","","h-5 w-5");
   x.onclick = () => act("remove",{ids:[it.id]});
-  row.append(ic, mid, status, x);
-  const bar = h("div","mt-2.5 hidden h-0.5 overflow-hidden rounded-full bg-zinc-800");
+  row.append(ic, mid, x);
+  const bar = h("div","mt-3 hidden h-1 overflow-hidden rounded-full bg-zinc-800");
   const fill = h("div","h-full w-0 rounded-full bg-indigo-400 transition-all duration-500");
   bar.append(fill);
   root.append(row, bar);
-  return {root, ic, title, meta, status, x, bar, fill, state:null};
+  return {root, ic, title, status, url, x, bar, fill, state:null};
 }
 
 function render(s){
@@ -725,19 +731,7 @@ function render(s){
   const fatal=$("#fatal"); fatal.classList.toggle("hidden",!s.fatal); fatal.textContent=s.fatal||"";
   const setup=$("#setup"); const settingUp=!s.ready&&!s.fatal;
   setup.classList.toggle("hidden",!settingUp); setup.classList.toggle("flex",settingUp);
-  if(settingUp){ if(!$("#setupIcon").firstChild) icon($("#setupIcon"),"loader-circle","animate-spin"); $("#setupText").textContent=s.setup_msg; }
-
-  const tools=$("#tools"); tools.textContent="";
-  if(s.ready){
-    const t=s.tools;
-    [["yt-dlp "+t.ytdlp,true],["ffmpeg",t.ffmpeg],["aria2c",t.aria2],[t.js||"no JS runtime",!!t.js]].forEach(([n,ok])=>{
-      const c=h("span","flex items-center gap-1.5");
-      c.append(h("span","h-1.5 w-1.5 rounded-full "+(ok?"bg-emerald-400":"bg-amber-400")), h("span","",n));
-      if(!ok && n==="aria2c") c.title="Not found - using the built-in downloader";
-      if(!ok && n==="no JS runtime") c.title="Install Deno for YouTube support";
-      tools.append(c);
-    });
-  }
+  if(settingUp){ if(!$("#setupIcon").firstChild) icon($("#setupIcon"),"loader-circle","animate-spin","h-4 w-4"); $("#setupText").textContent=s.setup_msg; }
 
   if(!cfg){
     cfg={...s.cfg};
@@ -749,7 +743,7 @@ function render(s){
   $("#connv").textContent = $("#conn").value+"×";
   document.querySelectorAll("#seg button").forEach(b=>{
     const on=b.dataset.v===cfg.container;
-    b.className="rounded-md px-3.5 py-1 font-mono text-xs transition "+(on?"bg-zinc-800 text-zinc-100":"text-zinc-500 hover:text-zinc-300");
+    b.className="flex-1 rounded-lg px-4 py-2 font-mono text-sm transition "+(on?"bg-zinc-800 text-zinc-100":"text-zinc-500 hover:text-zinc-300");
   });
 
   const list=$("#list"), ids=new Set(s.items.map(i=>i.id));
@@ -765,11 +759,13 @@ function render(s){
       e.ic.className="shrink-0 "+TONE[st];
     }
     e.title.textContent = it.title || it.url;
-    e.meta.textContent = it.title ? it.url : "";
-    e.meta.classList.toggle("hidden", !it.title);
-    e.status.className = "max-w-[40%] shrink-0 truncate font-mono text-[11px] "+TONE[st];
-    e.status.textContent = st==="queued" ? "" : it.text;
+    const statusText = st==="queued" ? "Queued" : it.text;
+    e.status.className = "shrink-0 font-mono "+TONE[st];
+    e.status.textContent = it.title ? statusText : statusText;
     e.status.title = it.text;
+    e.status.classList.toggle("max-w-[60%]", true);
+    e.status.classList.add("truncate");
+    e.url.textContent = it.title ? "· "+it.url : "";
     e.x.disabled = st==="running";
     const showBar = st==="running";
     e.bar.classList.toggle("hidden", !showBar);
@@ -824,7 +820,7 @@ document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>{ cfg.containe
 $("#quit").onclick=async()=>{
   if(!confirm("Stop the downloader server?")) return;
   await api("/api/quit",{});
-  document.body.innerHTML='<div class="grid h-screen place-items-center text-sm text-zinc-500">Server stopped. You can close this tab.</div>';
+  document.body.innerHTML='<div class="grid h-screen place-items-center text-base text-zinc-500">Server stopped. You can close this tab.</div>';
 };
 
 lucide.createIcons();
