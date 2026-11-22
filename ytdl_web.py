@@ -529,7 +529,7 @@ PAGE = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Downloader</title>
+<title>Batchy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -565,8 +565,7 @@ PAGE = r"""<!doctype html>
       <i data-lucide="arrow-down-to-line" class="h-5 w-5 text-indigo-400"></i>
     </div>
     <div class="min-w-0 flex-1">
-      <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-100 sm:text-2xl">Downloader</h1>
-      <p class="truncate text-sm text-zinc-500">Best video + best audio</p>
+      <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-100 sm:text-2xl">Batchy</h1>
     </div>
     <button id="settingsBtn" title="Settings" class="rounded-xl p-2.5 text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
       <i data-lucide="sliders-horizontal" class="h-5 w-5"></i>
@@ -845,7 +844,7 @@ def main() -> None:
     url = f"http://127.0.0.1:{server.server_address[1]}/"
 
     threading.Thread(target=CORE.setup, daemon=True).start()
-    print(f"yt-dlp Downloader running at {url}")
+    print(f"Batchy running at {url}")
     print("Close this window or press Ctrl+C to stop.")
     threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
