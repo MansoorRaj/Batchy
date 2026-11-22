@@ -1,9 +1,9 @@
 # yt-dlp GUI bootstrapper
-# Run with:  irm https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/install.ps1 | iex
+# Run with:  irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
 
 function Invoke-YtdlMenu {
     # >>> EDIT THESE TWO LINES <<<
-    $RepoRaw = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main"
+    $RepoRaw = "https://raw.githubusercontent.com/MansoorRaj/Batchy/main"
     $ScriptName = "ytdl_gui.py"
 
     $ErrorActionPreference = "Stop"
