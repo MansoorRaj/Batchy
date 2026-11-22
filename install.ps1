@@ -1,9 +1,9 @@
-# yt-dlp GUI bootstrapper
+# yt-dlp web UI bootstrapper
 # Run with:  irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
 
 function Invoke-YtdlMenu {
     $RepoRaw = "https://raw.githubusercontent.com/MansoorRaj/Batchy/main"
-    $ScriptName = "ytdl_gui.py"
+    $ScriptName = "ytdl_web.py"
 
     $ErrorActionPreference = "Stop"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -32,7 +32,7 @@ function Invoke-YtdlMenu {
 
     function Test-Python($exe) {
         try {
-            $code = Run-Native $exe @("-c", "import sys, tkinter; sys.exit(0 if sys.version_info >= (3, 10) else 1)")
+            $code = Run-Native $exe @("-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)")
             return ($code -eq 0)
         } catch { return $false }
     }
@@ -47,7 +47,7 @@ function Invoke-YtdlMenu {
         return $null
     }
 
-    # ---- 1. Python (with Tk) ------------------------------------------------
+    # ---- 1. Python ----------------------------------------------------------
     $py = Find-Python
     if (-not $py) {
         Write-Host "Python 3.10+ not found - installing..." -ForegroundColor Cyan
@@ -77,7 +77,6 @@ function Invoke-YtdlMenu {
 
     # ---- 3. Virtual environment + yt-dlp ------------------------------------
     $venvPy = Join-Path $Venv "Scripts\python.exe"
-    $venvPyw = Join-Path $Venv "Scripts\pythonw.exe"
     if (-not (Test-Path $venvPy)) {
         Write-Host "Creating environment..." -ForegroundColor Cyan
         $code = Run-Native $py @("-m", "venv", $Venv)
@@ -100,17 +99,10 @@ function Invoke-YtdlMenu {
         Write-Host "Offline - using cached copy." -ForegroundColor Yellow
     }
 
-    # ---- 5. Launch the GUI (no console window) ------------------------------
-    Write-Host "Launching..." -ForegroundColor Green
-    $proc = Start-Process $venvPyw -ArgumentList "`"$Script`"" -PassThru
-    Start-Sleep -Seconds 4
-    if ($proc.HasExited) {
-        Write-Host "The app closed right away - running it with a console to show the error:" -ForegroundColor Yellow
-        $old = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        & $venvPy $Script
-        $ErrorActionPreference = $old
-    }
+    # ---- 5. Run the web UI (opens in your browser; Ctrl+C or the Quit button stops it)
+    Write-Host "Starting the web UI..." -ForegroundColor Green
+    $ErrorActionPreference = "Continue"
+    & $venvPy $Script
 }
 
 try { Invoke-YtdlMenu } catch { Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red }
