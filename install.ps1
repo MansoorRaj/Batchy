@@ -1,9 +1,9 @@
 # yt-dlp GUI bootstrapper
-# Run with:  irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
+# Run with:  irm https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/install.ps1 | iex
 
 function Invoke-YtdlMenu {
     # >>> EDIT THESE TWO LINES <<<
-    $RepoRaw = "https://raw.githubusercontent.com/MansoorRaj/Batchy/main"
+    $RepoRaw = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main"
     $ScriptName = "ytdl_gui.py"
 
     $ErrorActionPreference = "Stop"
@@ -73,9 +73,18 @@ function Invoke-YtdlMenu {
         Write-Host "Creating environment..." -ForegroundColor Cyan
         & $py -m venv $Venv
     }
-    Write-Host "Updating yt-dlp..." -ForegroundColor Cyan
-    & $venvPy -m pip install --upgrade -q "yt-dlp[default,curl-cffi]" 2>$null
-    if ($LASTEXITCODE -ne 0) { & $venvPy -m pip install --upgrade -q "yt-dlp[default]" }
+    Write-Host "Installing/updating yt-dlp (first run can take a minute)..." -ForegroundColor Cyan
+    # Native stderr must not be treated as a terminating error in PS 5.1
+    $ErrorActionPreference = "Continue"
+    & $venvPy -m pip install --upgrade --disable-pip-version-check "yt-dlp[default,curl-cffi]" 2>&1 |
+        ForEach-Object { "$_" } | Select-String -Pattern "ERROR|Successfully" | ForEach-Object { Write-Host "  $_" }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Retrying without curl-cffi..." -ForegroundColor Yellow
+        & $venvPy -m pip install --upgrade --disable-pip-version-check "yt-dlp[default]" 2>&1 |
+            ForEach-Object { "$_" } | Select-String -Pattern "ERROR|Successfully" | ForEach-Object { Write-Host "  $_" }
+        if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = "Stop"; throw "pip could not install yt-dlp." }
+    }
+    $ErrorActionPreference = "Stop"
 
     # ---- 4. Fetch the latest app script (fall back to cached copy) ----------
     try {
@@ -87,7 +96,14 @@ function Invoke-YtdlMenu {
 
     # ---- 5. Launch the GUI (no console window) ------------------------------
     Write-Host "Launching..." -ForegroundColor Green
-    Start-Process $venvPyw -ArgumentList "`"$Script`""
+    $proc = Start-Process $venvPyw -ArgumentList "`"$Script`"" -PassThru
+    Start-Sleep -Seconds 4
+    if ($proc.HasExited) {
+        Write-Host "The app closed right away - running it with a console to show the error:" -ForegroundColor Yellow
+        $ErrorActionPreference = "Continue"
+        & $venvPy $Script
+        $ErrorActionPreference = "Stop"
+    }
 }
 
 try { Invoke-YtdlMenu } catch { Write-Host "Error: $_" -ForegroundColor Red }
