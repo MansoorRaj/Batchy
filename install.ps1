@@ -93,7 +93,7 @@ function Invoke-YtdlMenu {
 
     # ---- 4. Fetch the latest app script (fall back to cached copy) ----------
     try {
-        Invoke-WebRequest "$RepoRaw/$ScriptName" -OutFile $Script -UseBasicParsing
+        Invoke-WebRequest "$RepoRaw/$ScriptName?t=$([DateTime]::UtcNow.Ticks)" -OutFile $Script -UseBasicParsing
     } catch {
         if (-not (Test-Path $Script)) { throw "Could not download $RepoRaw/$ScriptName : $_" }
         Write-Host "Offline - using cached copy." -ForegroundColor Yellow
