@@ -93,10 +93,12 @@ function Invoke-YtdlMenu {
 
     # ---- 4. Fetch the latest app script (fall back to cached copy) ----------
     try {
-        Invoke-WebRequest "$RepoRaw/$ScriptName?t=$([DateTime]::UtcNow.Ticks)" -OutFile $Script -UseBasicParsing
+        $stamp = [DateTime]::UtcNow.Ticks
+        $url = "${RepoRaw}/${ScriptName}?t=${stamp}"   # braces matter: PowerShell treats $Name? as a variable name
+        Invoke-WebRequest $url -OutFile $Script -UseBasicParsing
     } catch {
-        if (-not (Test-Path $Script)) { throw "Could not download $RepoRaw/$ScriptName : $_" }
-        Write-Host "Offline - using cached copy." -ForegroundColor Yellow
+        if (-not (Test-Path $Script)) { throw "Could not download ${RepoRaw}/${ScriptName} : $($_.Exception.Message)" }
+        Write-Host "Could not fetch the latest script ($($_.Exception.Message)) - using cached copy." -ForegroundColor Yellow
     }
 
     # ---- 5. Run the web UI (opens in your browser; Ctrl+C or the Quit button stops it)
