@@ -197,8 +197,7 @@ class Core:
         self.lock = threading.RLock()
         self.items: list[dict] = []
         self.next_id = 1
-        self.cfg = {"dir": str(DEFAULT_DIR), "container": "mkv", "aria": True, "conn": 16,
-                    "playlist": False}
+        self.cfg = {"dir": str(DEFAULT_DIR), "container": "mkv", "aria": True, "conn": 16}
         self.ready = False
         self.setup_msg = "Setting up..."
         self.fatal: str | None = None
@@ -298,8 +297,6 @@ class Core:
                 self.cfg["dir"] = data["dir"].strip()
             if data.get("container") in ("mkv", "mp4"):
                 self.cfg["container"] = data["container"]
-            if "playlist" in data:
-                self.cfg["playlist"] = bool(data["playlist"])
             if "aria" in data:
                 self.cfg["aria"] = bool(data["aria"]) and bool(self.aria2_dir)
             if "conn" in data:
@@ -410,7 +407,7 @@ class Core:
                 "format": "bestvideo*+bestaudio/best",
                 "merge_output_format": cfg["container"],
                 "outtmpl": str(out_dir / "%(title)s [%(id)s].%(ext)s"),
-                "noplaylist": not cfg["playlist"],
+                "noplaylist": True,  # video+playlist links: only the video; pure playlist links still expand
                 "retries": 10,
                 "fragment_retries": 10,
                 "concurrent_fragment_downloads": 4,
@@ -528,238 +525,272 @@ class Handler(BaseHTTPRequestHandler):
 
 
 PAGE = r"""<!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>yt-dlp Downloader</title>
+<title>Downloader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { fontFamily: {
+      sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'],
+      mono: ['JetBrains Mono', 'ui-monospace', 'Consolas', 'monospace']
+    } } }
+  };
+</script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <style>
-  :root{
-    --bg:#0b0d12; --panel:#141821; --panel2:#1a1f2b; --line:#262c3a;
-    --fg:#e8ebf2; --muted:#8b93a7; --accent:#6c8cff; --accent2:#9b6cff;
-    --ok:#3ddc97; --bad:#ff6b7a; --warn:#ffc15e;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--fg);
-    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  body{background:radial-gradient(1200px 500px at 70% -10%,#1b2140 0%,transparent 60%),var(--bg);min-height:100vh}
-  .wrap{max-width:900px;margin:0 auto;padding:28px 20px 60px}
-  header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
-  .logo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 24px #6c8cff44}
-  h1{font-size:20px;margin:0;font-weight:650;letter-spacing:.2px}
-  .sub{color:var(--muted);font-size:13px}
-  .spacer{flex:1}
-  .chips{display:flex;gap:6px;flex-wrap:wrap}
-  .chip{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
-  .chip.ok{color:var(--ok);border-color:#2a5a47}
-  .chip.warn{color:var(--warn);border-color:#5a4a2a}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
-  textarea,input[type=text],select{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);
-    border-radius:10px;padding:11px 13px;font:inherit;outline:none;transition:border-color .15s}
-  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
-  textarea{resize:vertical;min-height:84px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .row.grow>*:first-child{flex:1}
-  button{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:10px;
-    padding:10px 16px;cursor:pointer;transition:transform .05s,background .15s,border-color .15s}
-  button:hover:not(:disabled){background:#222838;border-color:#343c50}
-  button:active:not(:disabled){transform:translateY(1px)}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff;font-weight:600}
-  button.primary:hover:not(:disabled){filter:brightness(1.1);background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  button.ghost{background:transparent}
-  .label{font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
-  .settings{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
-  .settings .full{grid-column:1/-1}
-  @media(max-width:640px){.settings{grid-template-columns:1fr}}
-  .toggle{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
-  .toggle input{width:18px;height:18px;accent-color:var(--accent)}
-  input[type=range]{width:100%;accent-color:var(--accent)}
-  .qhead{display:flex;align-items:center;gap:10px;margin:22px 2px 10px}
-  .qhead h2{margin:0;font-size:15px;font-weight:600}
-  .count{color:var(--muted);font-size:13px}
-  .item{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px}
-  .item .top{display:flex;gap:10px;align-items:center}
-  .item .title{flex:1;min-width:0;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .item .url{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
-  .badge{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--panel2);color:var(--muted);white-space:nowrap}
-  .item.running .badge{color:#9db4ff;background:#1d2646}
-  .item.done .badge{color:var(--ok);background:#14301f}
-  .item.failed .badge{color:var(--bad);background:#35161c;max-width:55%;overflow:hidden;text-overflow:ellipsis}
-  .x{padding:2px 9px;line-height:1.2;font-size:16px;background:transparent;border:0;color:var(--muted)}
-  .x:hover:not(:disabled){color:var(--bad);background:transparent!important}
-  .bar{height:6px;border-radius:99px;background:var(--panel2);margin-top:11px;overflow:hidden;display:none}
-  .item.running .bar,.item.done .bar{display:block}
-  .fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease}
-  .item.done .fill{background:var(--ok)}
-  .fill.indet{width:40%!important;animation:slide 1.2s ease-in-out infinite}
-  @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
-  .empty{text-align:center;color:var(--muted);padding:34px 10px;border:1px dashed var(--line);border-radius:14px}
-  .overall{height:8px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:14px}
-  .overall .fill{background:linear-gradient(90deg,var(--accent2),var(--accent))}
-  .msg{color:var(--muted);font-size:13px;margin-top:10px;min-height:18px}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;
-    background:#222838;border:1px solid var(--line);padding:10px 18px;border-radius:12px;transition:.25s;pointer-events:none}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .banner{background:#2a1a1f;border:1px solid #5a2a35;color:#ffb3bd;padding:12px 16px;border-radius:12px;margin-bottom:16px;display:none}
-  .setup{color:var(--warn);font-size:13px;margin-bottom:14px;display:none}
+  html { color-scheme: dark; }
+  @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+  .indet { width: 35% !important; animation: slide 1.1s ease-in-out infinite; }
+  textarea { field-sizing: content; }
+  ::selection { background: #6366f155; }
 </style>
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <div class="logo">⬇</div>
-    <div>
-      <h1>yt-dlp Downloader</h1>
-      <div class="sub">Best video + best audio, accelerated with aria2c</div>
+<body class="min-h-screen bg-zinc-950 font-sans text-zinc-200 antialiased">
+<div class="fixed inset-x-0 top-0 z-20 h-0.5 bg-transparent">
+  <div id="overall" class="h-full w-0 bg-indigo-400 transition-all duration-500"></div>
+</div>
+
+<main class="mx-auto max-w-2xl px-5 pb-24 pt-10">
+
+  <!-- header -->
+  <header class="flex items-center gap-3">
+    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 ring-1 ring-zinc-800">
+      <i data-lucide="arrow-down-to-line" class="h-4 w-4 text-indigo-400"></i>
     </div>
-    <div class="spacer"></div>
-    <button class="ghost" id="quit" title="Stop the local server">Quit</button>
+    <div class="flex-1">
+      <h1 class="text-[15px] font-semibold tracking-tight text-zinc-100">Downloader</h1>
+      <p class="text-xs text-zinc-500">Best video + best audio</p>
+    </div>
+    <button id="settingsBtn" title="Settings" class="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
+      <i data-lucide="sliders-horizontal" class="h-4 w-4"></i>
+    </button>
+    <button id="quit" title="Quit" class="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-900 hover:text-red-400">
+      <i data-lucide="power" class="h-4 w-4"></i>
+    </button>
   </header>
 
-  <div class="banner" id="fatal"></div>
-  <div class="setup" id="setup"></div>
-  <div class="chips" id="chips" style="margin-bottom:16px"></div>
-
-  <div class="card">
-    <div class="label">Paste links (one or many)</div>
-    <textarea id="links" placeholder="https://www.youtube.com/watch?v=...&#10;https://..."></textarea>
-    <div class="row" style="margin-top:10px">
-      <button class="primary" id="add">Add to queue</button>
-      <button id="paste">Paste from clipboard</button>
-      <span class="sub">Ctrl+Enter to add</span>
-    </div>
+  <div id="tools" class="mt-4 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-500"></div>
+  <div id="setup" class="mt-4 hidden items-center gap-2 text-xs text-amber-300/90">
+    <span id="setupIcon"></span><span id="setupText"></span>
   </div>
+  <div id="fatal" class="mt-4 hidden rounded-xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300"></div>
 
-  <div class="card">
-    <div class="settings">
-      <div class="full">
-        <div class="label">Save to</div>
-        <div class="row grow">
-          <input type="text" id="dir" spellcheck="false">
-          <button id="browse">Browse</button>
-          <button id="open">Open folder</button>
+  <!-- input -->
+  <section class="mt-6">
+    <div class="rounded-2xl bg-zinc-900 p-2 ring-1 ring-zinc-800 transition focus-within:ring-zinc-600">
+      <textarea id="links" rows="2" spellcheck="false"
+        placeholder="Paste one or more links…"
+        class="max-h-48 min-h-[56px] w-full resize-none bg-transparent px-3 py-2 font-mono text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none"></textarea>
+      <div class="flex items-center justify-between px-1 pb-1">
+        <span class="px-2 text-[11px] text-zinc-600">Ctrl + Enter to add</span>
+        <div class="flex gap-1.5">
+          <button id="paste" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100">
+            <i data-lucide="clipboard-paste" class="h-3.5 w-3.5"></i>Paste
+          </button>
+          <button id="add" class="flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 transition hover:bg-white">
+            <i data-lucide="plus" class="h-3.5 w-3.5"></i>Add
+          </button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- settings -->
+  <section id="settings" class="mt-3 hidden rounded-2xl bg-zinc-900/60 p-4 ring-1 ring-zinc-800">
+    <div class="space-y-4">
       <div>
-        <div class="label">Container</div>
-        <select id="container"><option value="mkv">mkv (keeps best streams)</option><option value="mp4">mp4 (more compatible)</option></select>
+        <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-500">Save to</label>
+        <div class="flex gap-1.5">
+          <input id="dir" type="text" spellcheck="false"
+            class="min-w-0 flex-1 rounded-lg bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-200 ring-1 ring-zinc-800 focus:outline-none focus:ring-zinc-600">
+          <button id="browse" title="Browse" class="rounded-lg bg-zinc-800 px-2.5 text-zinc-300 transition hover:bg-zinc-700"><i data-lucide="folder" class="h-4 w-4"></i></button>
+          <button id="open" title="Open folder" class="rounded-lg bg-zinc-800 px-2.5 text-zinc-300 transition hover:bg-zinc-700"><i data-lucide="folder-open" class="h-4 w-4"></i></button>
+        </div>
       </div>
-      <div class="full">
-        <label class="toggle"><input type="checkbox" id="playlist"><span>Download the whole playlist when a link includes one <span class="sub">(off = only the video in the link)</span></span></label>
-      </div>
-      <div>
-        <div class="label">aria2c</div>
-        <label class="toggle"><input type="checkbox" id="aria"><span>Fast downloads</span></label>
-        <div class="row" style="margin-top:8px"><input type="range" id="conn" min="1" max="16"><span id="connv" class="sub" style="min-width:90px">16 connections</span></div>
+
+      <div class="flex flex-wrap items-center gap-x-8 gap-y-4">
+        <div>
+          <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-500">Container</label>
+          <div class="inline-flex rounded-lg bg-zinc-950 p-0.5 ring-1 ring-zinc-800" id="seg">
+            <button data-v="mkv" class="rounded-md px-3.5 py-1 font-mono text-xs transition">mkv</button>
+            <button data-v="mp4" class="rounded-md px-3.5 py-1 font-mono text-xs transition">mp4</button>
+          </div>
+        </div>
+
+        <div class="min-w-[220px] flex-1">
+          <div class="mb-1.5 flex items-center justify-between">
+            <label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">aria2c fast mode</label>
+            <label class="relative inline-flex cursor-pointer items-center">
+              <input id="aria" type="checkbox" class="peer sr-only">
+              <div class="h-5 w-9 rounded-full bg-zinc-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:bg-indigo-500 peer-checked:after:translate-x-4 peer-disabled:opacity-40"></div>
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <input id="conn" type="range" min="1" max="16" class="h-1 flex-1 cursor-pointer accent-indigo-500 disabled:opacity-40">
+            <span id="connv" class="w-10 text-right font-mono text-xs text-zinc-400">16×</span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="qhead">
-    <h2>Queue</h2><span class="count" id="count"></span>
-    <div class="spacer"></div>
-    <button class="ghost" id="clear">Clear finished</button>
-  </div>
-  <div id="list"></div>
-  <div class="empty" id="empty">No links yet. Paste some above.</div>
+  <!-- queue -->
+  <section class="mt-8">
+    <div class="mb-2 flex items-center px-1">
+      <h2 class="text-xs font-medium uppercase tracking-wider text-zinc-500">Queue</h2>
+      <span id="count" class="ml-2 font-mono text-[11px] text-zinc-600"></span>
+      <button id="clear" class="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200">
+        <i data-lucide="trash-2" class="h-3 w-3"></i>Clear finished
+      </button>
+    </div>
 
-  <div class="row" style="margin-top:18px">
-    <button class="primary" id="start" disabled>Download queue</button>
-    <button id="stop" disabled>Stop</button>
-  </div>
-  <div class="overall"><div class="fill" id="overall"></div></div>
-  <div class="msg" id="msg"></div>
-</div>
-<div class="toast" id="toast"></div>
+    <div id="list" class="divide-y divide-zinc-800/70 overflow-hidden rounded-2xl bg-zinc-900/50 ring-1 ring-zinc-800 empty:hidden"></div>
+
+    <div id="empty" class="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-800 py-12 text-zinc-600">
+      <i data-lucide="link" class="h-5 w-5"></i>
+      <span class="text-sm">Nothing queued</span>
+    </div>
+  </section>
+
+  <!-- actions -->
+  <section class="mt-6 flex items-center gap-2">
+    <button id="start" disabled class="flex items-center gap-2 rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/10 transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none">
+      <i data-lucide="download" class="h-4 w-4"></i>Download queue
+    </button>
+    <button id="stop" disabled class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-300 ring-1 ring-zinc-800 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:text-zinc-600">
+      <i data-lucide="square" class="h-3.5 w-3.5"></i>Stop
+    </button>
+    <span id="msg" class="ml-2 truncate text-xs text-zinc-500"></span>
+  </section>
+</main>
+
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-3 rounded-xl bg-zinc-800 px-4 py-2 text-xs text-zinc-100 opacity-0 shadow-xl ring-1 ring-zinc-700 transition duration-200"></div>
 
 <script>
 const TOKEN = "__TOKEN__";
 const $ = s => document.querySelector(s);
+const ICON = {queued:"clock", waiting:"clock", running:"loader-circle", done:"check", failed:"circle-alert"};
+const TONE = {queued:"text-zinc-500", waiting:"text-zinc-500", running:"text-indigo-400", done:"text-emerald-400", failed:"text-red-400"};
+
+function icon(el, name, cls){ el.innerHTML = '<i data-lucide="'+name+'" class="h-4 w-4 '+(cls||"")+'"></i>'; lucide.createIcons(); }
+function h(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
+
 let toastTimer;
-function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove("show"),2600);}
+function toast(t){
+  const e=$("#toast"); e.textContent=t;
+  e.classList.remove("opacity-0","translate-y-3"); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>e.classList.add("opacity-0","translate-y-3"),2600);
+}
 async function api(path, body){
   try{
     const r = await fetch(path,{method:body===undefined?"GET":"POST",
       headers:{"X-Token":TOKEN,"Content-Type":"application/json"},
       body:body===undefined?undefined:JSON.stringify(body)});
     return await r.json();
-  }catch(e){return {error:"Server not reachable (was it closed?)"};}
+  }catch(e){ return {error:"Server not reachable (was it closed?)"}; }
 }
-async function act(path, body){const r=await api("/api/"+path, body||{}); if(r.error) toast(r.error); return r;}
-function h(tag, cls, text){const e=document.createElement(tag); if(cls)e.className=cls; if(text!==undefined)e.textContent=text; return e;}
+async function act(path, body){ const r=await api("/api/"+path, body||{}); if(r.error) toast(r.error); return r; }
 
 const els = new Map();
-let cfgLoaded = false, last = null;
+let cfg = null, last = null;
 
 function makeItem(it){
-  const root=h("div","item");
-  const top=h("div","top"), title=h("div","title"), badge=h("span","badge"), x=h("button","x","×");
-  x.title="Remove"; x.onclick=()=>act("remove",{ids:[it.id]});
-  top.append(title,badge,x);
-  const url=h("div","url",it.url);
-  const bar=h("div","bar"), fill=h("div","fill"); bar.append(fill);
-  root.append(top,url,bar);
-  return {root,title,badge,x,fill};
+  const root = h("div","group relative px-4 py-3");
+  const row = h("div","flex items-center gap-3");
+  const ic = h("span","shrink-0");
+  const mid = h("div","min-w-0 flex-1");
+  const title = h("div","truncate text-[13px] font-medium text-zinc-100");
+  const meta = h("div","truncate font-mono text-[11px] text-zinc-600");
+  mid.append(title, meta);
+  const status = h("span","max-w-[40%] shrink-0 truncate font-mono text-[11px]");
+  const x = h("button","shrink-0 rounded-md p-1 text-zinc-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100 disabled:hidden");
+  x.title = "Remove"; icon(x,"x");
+  x.onclick = () => act("remove",{ids:[it.id]});
+  row.append(ic, mid, status, x);
+  const bar = h("div","mt-2.5 hidden h-0.5 overflow-hidden rounded-full bg-zinc-800");
+  const fill = h("div","h-full w-0 rounded-full bg-indigo-400 transition-all duration-500");
+  bar.append(fill);
+  root.append(row, bar);
+  return {root, ic, title, meta, status, x, bar, fill, state:null};
 }
 
 function render(s){
   last = s;
-  $("#fatal").style.display = s.fatal ? "block" : "none";
-  $("#fatal").textContent = s.fatal || "";
-  $("#setup").style.display = (!s.ready && !s.fatal) ? "block" : "none";
-  $("#setup").textContent = s.setup_msg;
+  const fatal=$("#fatal"); fatal.classList.toggle("hidden",!s.fatal); fatal.textContent=s.fatal||"";
+  const setup=$("#setup"); const settingUp=!s.ready&&!s.fatal;
+  setup.classList.toggle("hidden",!settingUp); setup.classList.toggle("flex",settingUp);
+  if(settingUp){ if(!$("#setupIcon").firstChild) icon($("#setupIcon"),"loader-circle","animate-spin"); $("#setupText").textContent=s.setup_msg; }
 
-  const chips=$("#chips"); chips.textContent="";
+  const tools=$("#tools"); tools.textContent="";
   if(s.ready){
     const t=s.tools;
-    [["yt-dlp "+t.ytdlp,true],["ffmpeg",t.ffmpeg],["aria2c",t.aria2],[t.js?t.js:"no JS runtime",!!t.js]].forEach(([n,ok])=>{
-      const c=h("span","chip "+(ok?"ok":"warn"),(ok?"✓ ":"! ")+n);
-      if(n==="no JS runtime") c.title="Install Deno for YouTube support";
-      if(n==="aria2c"&&!ok) c.title="Not found - using the built-in downloader";
-      chips.append(c);
+    [["yt-dlp "+t.ytdlp,true],["ffmpeg",t.ffmpeg],["aria2c",t.aria2],[t.js||"no JS runtime",!!t.js]].forEach(([n,ok])=>{
+      const c=h("span","flex items-center gap-1.5");
+      c.append(h("span","h-1.5 w-1.5 rounded-full "+(ok?"bg-emerald-400":"bg-amber-400")), h("span","",n));
+      if(!ok && n==="aria2c") c.title="Not found - using the built-in downloader";
+      if(!ok && n==="no JS runtime") c.title="Install Deno for YouTube support";
+      tools.append(c);
     });
   }
 
-  if(!cfgLoaded){
-    $("#dir").value=s.cfg.dir; $("#container").value=s.cfg.container;
-    $("#aria").checked=s.cfg.aria; $("#conn").value=s.cfg.conn; $("#playlist").checked=s.cfg.playlist;
-    cfgLoaded=true;
+  if(!cfg){
+    cfg={...s.cfg};
+    $("#dir").value=cfg.dir; $("#aria").checked=cfg.aria; $("#conn").value=cfg.conn;
   }
-  $("#aria").disabled=!s.tools.aria2 && s.ready;
-  if(s.ready && !s.tools.aria2) $("#aria").checked=false;
-  $("#connv").textContent=$("#conn").value+" connections";
-  $("#conn").disabled=!$("#aria").checked;
+  $("#aria").disabled = s.ready && !s.tools.aria2;
+  if(s.ready && !s.tools.aria2){ $("#aria").checked=false; }
+  $("#conn").disabled = !$("#aria").checked;
+  $("#connv").textContent = $("#conn").value+"×";
+  document.querySelectorAll("#seg button").forEach(b=>{
+    const on=b.dataset.v===cfg.container;
+    b.className="rounded-md px-3.5 py-1 font-mono text-xs transition "+(on?"bg-zinc-800 text-zinc-100":"text-zinc-500 hover:text-zinc-300");
+  });
 
   const list=$("#list"), ids=new Set(s.items.map(i=>i.id));
-  for(const [id,e] of els){ if(!ids.has(id)){e.root.remove(); els.delete(id);} }
+  for(const [id,e] of els){ if(!ids.has(id)){ e.root.remove(); els.delete(id); } }
   s.items.forEach((it,idx)=>{
     let e=els.get(it.id);
-    if(!e){e=makeItem(it); els.set(it.id,e);}
+    if(!e){ e=makeItem(it); els.set(it.id,e); }
     if(list.children[idx]!==e.root) list.insertBefore(e.root,list.children[idx]||null);
-    e.root.className="item "+it.state;
-    e.title.textContent=it.title||it.url;
-    e.badge.textContent=it.text; e.badge.title=it.text;
-    e.x.disabled=it.state==="running";
-    const indet = it.state==="running" && it.pct===null;
-    e.fill.classList.toggle("indet",indet);
-    if(!indet) e.fill.style.width=(it.pct||0)+"%";
+    const st=it.state;
+    if(e.state!==st){
+      e.state=st;
+      icon(e.ic, ICON[st], st==="running"?"animate-spin":"");
+      e.ic.className="shrink-0 "+TONE[st];
+    }
+    e.title.textContent = it.title || it.url;
+    e.meta.textContent = it.title ? it.url : "";
+    e.meta.classList.toggle("hidden", !it.title);
+    e.status.className = "max-w-[40%] shrink-0 truncate font-mono text-[11px] "+TONE[st];
+    e.status.textContent = st==="queued" ? "" : it.text;
+    e.status.title = it.text;
+    e.x.disabled = st==="running";
+    const showBar = st==="running";
+    e.bar.classList.toggle("hidden", !showBar);
+    const indet = showBar && it.pct===null;
+    e.fill.classList.toggle("indet", indet);
+    if(!indet) e.fill.style.width = (it.pct||0)+"%";
   });
-  $("#empty").style.display=s.items.length?"none":"block";
-  const q=s.items.filter(i=>i.state!=="done").length;
-  $("#count").textContent=s.items.length?`${s.items.length} link${s.items.length>1?"s":""} · ${q} pending`:"";
+  $("#empty").classList.toggle("hidden", s.items.length>0);
+  const pending=s.items.filter(i=>i.state!=="done").length;
+  $("#count").textContent = s.items.length ? s.items.length+" · "+pending+" pending" : "";
 
-  $("#start").disabled=!s.ready||s.running||!!s.fatal;
-  $("#stop").disabled=!s.running;
-  $("#overall").style.width=(s.total?Math.round(s.done*100/s.total):0)+"%";
-  $("#msg").textContent=s.running?`Downloading ${Math.min(s.done+1,s.total)} of ${s.total}...`:s.message;
+  $("#start").disabled = !s.ready || s.running || !!s.fatal;
+  $("#stop").disabled = !s.running;
+  $("#overall").style.width = (s.total ? Math.round(s.done*100/s.total) : 0)+"%";
+  $("#msg").textContent = s.running ? "Downloading "+Math.min(s.done+1,s.total)+" of "+s.total+"…" : s.message;
 }
 
 async function poll(){
   const s=await api("/api/state");
   if(!s.error) render(s);
-  else if(s.error.startsWith("Server not")) {$("#msg").textContent=s.error;}
+  else if(s.error.startsWith("Server not")) $("#msg").textContent=s.error;
   setTimeout(poll,500);
 }
 
@@ -767,30 +798,36 @@ async function addLinks(){
   const r=await act("add",{text:$("#links").value});
   if(r.error) return;
   if(r.found===0) toast("No links found in that text");
-  else {toast(r.added?`Added ${r.added} link${r.added>1?"s":""}`:"Already in the queue"); $("#links").value="";}
+  else { toast(r.added ? "Added "+r.added+" link"+(r.added>1?"s":"") : "Already in the queue"); $("#links").value=""; }
 }
 $("#add").onclick=addLinks;
-$("#links").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)) addLinks();});
+$("#links").addEventListener("keydown",e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)) addLinks(); });
 $("#paste").onclick=async()=>{
-  try{ const t=await navigator.clipboard.readText(); $("#links").value=t; addLinks(); }
-  catch(e){ toast("Clipboard blocked - paste into the box with Ctrl+V"); $("#links").focus(); }
+  try{ $("#links").value=await navigator.clipboard.readText(); addLinks(); }
+  catch(e){ toast("Clipboard blocked - paste with Ctrl+V"); $("#links").focus(); }
 };
 $("#clear").onclick=()=>act("clear_done");
 $("#start").onclick=()=>act("start");
 $("#stop").onclick=()=>act("stop");
 $("#open").onclick=()=>act("open_folder");
-$("#browse").onclick=async()=>{const r=await act("browse"); if(!r.error){cfgLoaded=false; const s=await api("/api/state"); render(s);}};
-const pushCfg=()=>act("config",{dir:$("#dir").value,container:$("#container").value,aria:$("#aria").checked,conn:+$("#conn").value,playlist:$("#playlist").checked});
-["#dir","#container"].forEach(s=>$(s).addEventListener("change",pushCfg));
-$("#aria").addEventListener("change",()=>{pushCfg();if(last)render(last);});
-$("#playlist").addEventListener("change",pushCfg);
-$("#conn").addEventListener("input",()=>{$("#connv").textContent=$("#conn").value+" connections";});
-$("#conn").addEventListener("change",pushCfg);
+$("#settingsBtn").onclick=()=>$("#settings").classList.toggle("hidden");
+$("#browse").onclick=async()=>{
+  const r=await act("browse");
+  if(!r.error){ const s=await api("/api/state"); if(cfg&&!s.error){ cfg.dir=s.cfg.dir; $("#dir").value=cfg.dir; } }
+};
+function pushCfg(){ if(cfg) act("config",cfg); }
+$("#dir").addEventListener("change",()=>{ cfg.dir=$("#dir").value; pushCfg(); });
+$("#aria").addEventListener("change",()=>{ cfg.aria=$("#aria").checked; pushCfg(); if(last) render(last); });
+$("#conn").addEventListener("input",()=>{ $("#connv").textContent=$("#conn").value+"×"; });
+$("#conn").addEventListener("change",()=>{ cfg.conn=+$("#conn").value; pushCfg(); });
+document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>{ cfg.container=b.dataset.v; pushCfg(); if(last) render(last); });
 $("#quit").onclick=async()=>{
   if(!confirm("Stop the downloader server?")) return;
   await api("/api/quit",{});
-  document.body.innerHTML='<div style="display:grid;place-items:center;height:100vh;color:#8b93a7;font:16px system-ui">Server stopped. You can close this tab.</div>';
+  document.body.innerHTML='<div class="grid h-screen place-items-center text-sm text-zinc-500">Server stopped. You can close this tab.</div>';
 };
+
+lucide.createIcons();
 poll();
 </script>
 </body>
