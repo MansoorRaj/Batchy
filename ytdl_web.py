@@ -197,7 +197,8 @@ class Core:
         self.lock = threading.RLock()
         self.items: list[dict] = []
         self.next_id = 1
-        self.cfg = {"dir": str(DEFAULT_DIR), "container": "mkv", "aria": True, "conn": 16}
+        self.cfg = {"dir": str(DEFAULT_DIR), "container": "mkv", "aria": True, "conn": 16,
+                    "playlist": False}
         self.ready = False
         self.setup_msg = "Setting up..."
         self.fatal: str | None = None
@@ -297,6 +298,8 @@ class Core:
                 self.cfg["dir"] = data["dir"].strip()
             if data.get("container") in ("mkv", "mp4"):
                 self.cfg["container"] = data["container"]
+            if "playlist" in data:
+                self.cfg["playlist"] = bool(data["playlist"])
             if "aria" in data:
                 self.cfg["aria"] = bool(data["aria"]) and bool(self.aria2_dir)
             if "conn" in data:
@@ -407,7 +410,7 @@ class Core:
                 "format": "bestvideo*+bestaudio/best",
                 "merge_output_format": cfg["container"],
                 "outtmpl": str(out_dir / "%(title)s [%(id)s].%(ext)s"),
-                "noplaylist": False,
+                "noplaylist": not cfg["playlist"],
                 "retries": 10,
                 "fragment_retries": 10,
                 "concurrent_fragment_downloads": 4,
@@ -643,6 +646,9 @@ PAGE = r"""<!doctype html>
         <div class="label">Container</div>
         <select id="container"><option value="mkv">mkv (keeps best streams)</option><option value="mp4">mp4 (more compatible)</option></select>
       </div>
+      <div class="full">
+        <label class="toggle"><input type="checkbox" id="playlist"><span>Download the whole playlist when a link includes one <span class="sub">(off = only the video in the link)</span></span></label>
+      </div>
       <div>
         <div class="label">aria2c</div>
         <label class="toggle"><input type="checkbox" id="aria"><span>Fast downloads</span></label>
@@ -718,7 +724,7 @@ function render(s){
 
   if(!cfgLoaded){
     $("#dir").value=s.cfg.dir; $("#container").value=s.cfg.container;
-    $("#aria").checked=s.cfg.aria; $("#conn").value=s.cfg.conn;
+    $("#aria").checked=s.cfg.aria; $("#conn").value=s.cfg.conn; $("#playlist").checked=s.cfg.playlist;
     cfgLoaded=true;
   }
   $("#aria").disabled=!s.tools.aria2 && s.ready;
@@ -774,9 +780,10 @@ $("#start").onclick=()=>act("start");
 $("#stop").onclick=()=>act("stop");
 $("#open").onclick=()=>act("open_folder");
 $("#browse").onclick=async()=>{const r=await act("browse"); if(!r.error){cfgLoaded=false; const s=await api("/api/state"); render(s);}};
-const pushCfg=()=>act("config",{dir:$("#dir").value,container:$("#container").value,aria:$("#aria").checked,conn:+$("#conn").value});
+const pushCfg=()=>act("config",{dir:$("#dir").value,container:$("#container").value,aria:$("#aria").checked,conn:+$("#conn").value,playlist:$("#playlist").checked});
 ["#dir","#container"].forEach(s=>$(s).addEventListener("change",pushCfg));
 $("#aria").addEventListener("change",()=>{pushCfg();if(last)render(last);});
+$("#playlist").addEventListener("change",pushCfg);
 $("#conn").addEventListener("input",()=>{$("#connv").textContent=$("#conn").value+" connections";});
 $("#conn").addEventListener("change",pushCfg);
 $("#quit").onclick=async()=>{
