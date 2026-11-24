@@ -1,96 +1,265 @@
 # Batchy
 
-A small local web app for downloading videos with [yt-dlp](https://github.com/yt-dlp/yt-dlp). Paste links, queue them, and download the best video + best audio. [aria2c](https://aria2.github.io/) is used for fast multi-connection downloads.
+**Download videos in batches. Simply, quickly, and locally.**
 
-## Run it (Windows)
+Batchy is a lightweight desktop-friendly web app that makes downloading videos easy. Paste your links, add them to the queue, and let Batchy handle the rest.
 
-Open **PowerShell** (not Command Prompt) and run:
+Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp), Batchy automatically downloads the best available video and audio quality. It also supports [aria2c](https://aria2.github.io/) for faster, multi-connection downloads.
+
+No complicated setup. No unnecessary clutter. Just paste, queue, and download.
+
+---
+
+## Get Started
+
+<details>
+<summary><strong>Windows — Quick Installation</strong></summary>
+
+### 1. Open PowerShell
+
+Open Windows PowerShell (not Command Prompt).
+
+### 2. Run the installer
+
+Copy and paste this command:
 
 ```powershell
 irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
 ```
 
-That's it. Your browser opens to `http://127.0.0.1:8765/` (or the next free port, printed in the console).
+### 3. You're ready!
 
-### What the installer does
+That's it! Batchy will automatically:
 
-On first run it sets everything up automatically:
+- Install any required dependencies.
+- Set up its private Python environment.
+- Download and configure yt-dlp.
+- Prepare the application.
+- Launch Batchy in your default browser.
 
-1. Installs Python 3.10+ if missing (via winget, or python.org as a fallback)
-2. Installs Deno if no JS runtime is found (needed for YouTube)
-3. Creates a private environment in `%LOCALAPPDATA%\ytdl_menu` and installs/updates yt-dlp
-4. Downloads the latest `ytdl_web.py` from this repo
-5. Starts the app. ffmpeg and aria2c are downloaded in the background on first launch
+Once everything is ready, open:
 
-Later runs skip what's already installed and only update yt-dlp and the app script, so they start much faster.
+**http://127.0.0.1:8765/**
 
-## Using it
+If that port is already occupied, Batchy automatically uses another available port and displays it in the PowerShell window.
 
-1. Paste one or more links into the box and press **Enter** (or click **Add**). Shift+Enter adds a new line.
-2. Click **Download queue**.
-3. Use **Stop** to cancel, the **x** on a row to remove it, and **Clear finished** to tidy up done items.
+</details>
 
-Failed items stay in the queue so you can retry them.
+---
 
-### Settings (sliders icon)
+## What Makes Batchy Useful?
 
-| Setting | What it does |
-| --- | --- |
-| Save to | Download folder. Default: `Downloads\yt-dlp` in your user folder. |
-| Container | `mkv` keeps the best streams untouched. `mp4` is more compatible. |
-| aria2c fast mode | Multi-connection downloads (1 to 16). Turn off for exact live progress. |
+- **Batch Downloads:** Add multiple video links and download them together.
+- **Best Quality:** Automatically selects the best available video and audio streams.
+- **Fast Downloads:** Supports aria2c for multi-connection downloading.
+- **Simple Interface:** Manage everything from one clean web interface.
+- **Queue Management:** Add, remove, stop, retry, and clear downloads.
+- **Local & Private:** Runs on your own computer through a local web server.
+- **Easy Setup:** The installer handles dependencies and configuration automatically.
 
-### Good to know
+---
 
-- A link that contains both a video and a playlist (for example a YouTube Mix) downloads **only that video**. A link that is purely a playlist downloads the whole playlist.
-- With aria2c on, yt-dlp can't report live percent and speed, so active items show an animated bar. Turn aria2c off if you want exact progress.
-- The page loads Tailwind, Lucide icons and Google Fonts from the internet, so it needs a connection to look right.
+## Using Batchy
 
-## Stopping it
+Getting started is simple.
 
-Click the **power** icon in the page, or press **Ctrl+C** in the PowerShell window.
+1. **Add links:** Paste one or more video URLs into the input box.
+2. **Queue them:** Press `Enter` or click **Add**.
+3. **Start downloading:** Click **Download queue**.
+4. **Manage downloads:** Monitor your queue and manage individual items.
 
-## Run it manually
+### Managing Your Queue
 
-If you've already run the installer once, you can start it directly:
+| Action | What it does |
+|---|---|
+| Download queue | Starts downloading queued items |
+| Stop | Stops the current download process |
+| × | Removes an individual item |
+| Clear finished | Removes completed items from the queue |
+
+**Tip:** Failed downloads remain in your queue, allowing you to retry them without adding the links again.
+
+---
+
+## Customize Your Experience
+
+Open **Settings** using the sliders icon to configure how Batchy works.
+
+| Setting | Description |
+|---|---|
+| **Save to** | Choose where your downloaded videos are stored. |
+| **Container** | Choose between MKV and MP4 formats. |
+| **aria2c Fast Mode** | Enable multi-connection downloads for potentially faster downloading. |
+
+### Understanding the Settings
+
+**Save Location**
+
+By default, downloads are saved to:
+
+```text
+%USERPROFILE%\Downloads\yt-dlp
+```
+
+You can change this to any folder you prefer.
+
+**Video Container**
+
+- **MKV:** Preserves the best available streams without unnecessary conversion.
+- **MP4:** Offers better compatibility with many devices and media players.
+
+**aria2c Fast Mode**
+
+Enable this option to use multiple connections (1–16) for downloading.
+
+Keep in mind:
+- Enabled: Uses aria2c for multi-connection downloads. Progress is shown using an animated bar.
+- Disabled: Uses the built-in downloader and displays more accurate download percentages and speeds.
+
+---
+
+## Automatic Setup
+
+Batchy takes care of its own dependencies.
+
+On the first installation, the installer checks and prepares everything required:
+
+| Component | Purpose |
+|---|---|
+| Python 3.10+ | Runs the Batchy application |
+| Deno | Provides a JavaScript runtime needed for certain YouTube downloads |
+| yt-dlp | Handles video and audio extraction |
+| FFmpeg | Processes and merges audio/video streams |
+| aria2c | Enables multi-connection downloads |
+
+Dependencies are installed automatically where supported.
+
+### What Happens on Future Launches?
+
+You don't have to repeat the entire installation process.
+
+On subsequent runs, the installer:
+- Skips dependencies that are already installed.
+- Updates yt-dlp.
+- Downloads the latest application script.
+- Starts Batchy.
+
+This makes subsequent launches considerably faster.
+
+---
+
+## A Few Things to Know
+
+**YouTube Mixes and Playlists**
+
+- A link containing both an individual video and a playlist (such as a YouTube Mix) downloads only the selected video.
+- A direct playlist link downloads the entire playlist.
+
+**Download Progress**
+
+When aria2c is enabled, exact download percentages and speeds aren't available through yt-dlp. Batchy displays an animated progress bar instead.
+
+Disable aria2c if you prefer more detailed progress information.
+
+**Internet Connection**
+
+The interface loads Tailwind CSS, Lucide icons, and Google Fonts from online sources. An internet connection is required for these resources to load correctly.
+
+---
+
+## Stopping Batchy
+
+You can shut down Batchy in either of these ways:
+
+- Click the **Power** icon in the application.
+- Press `Ctrl + C` in the PowerShell window running Batchy.
+
+---
+
+## Advanced: Running Batchy Manually
+
+Already installed Batchy? You can launch it without running the installer again.
+
+Open PowerShell and execute:
 
 ```powershell
 & "$env:LOCALAPPDATA\ytdl_menu\venv\Scripts\python.exe" "$env:LOCALAPPDATA\ytdl_menu\ytdl_web.py"
 ```
 
-On macOS or Linux, install Python 3.10+, then:
+### macOS & Linux
+
+Install Python 3.10 or newer, then install yt-dlp:
 
 ```bash
 pip install "yt-dlp[default,curl-cffi]"
+```
+
+Run the application:
+
+```bash
 python3 ytdl_web.py
 ```
 
-ffmpeg is downloaded automatically on Linux and installed with Homebrew on macOS. For aria2c, install it yourself (`brew install aria2` or `sudo apt install aria2`); without it the app uses the built-in downloader.
+**Additional dependencies:**
 
-## Files
+- FFmpeg is downloaded automatically on Linux and installed using Homebrew on macOS.
+- aria2c must be installed separately.
 
-| File | Purpose |
-| --- | --- |
-| `install.ps1` | Bootstrapper for the `irm \| iex` one-liner |
-| `ytdl_web.py` | The app: a local server plus the web UI |
+For macOS:
+
+```bash
+brew install aria2
+```
+
+For Ubuntu/Debian:
+
+```bash
+sudo apt install aria2
+```
+
+Without aria2c, Batchy uses its built-in downloader.
+
+---
 
 ## Troubleshooting
 
-- **`irm` or `iex` is not recognized:** you're in Command Prompt. Type `powershell` first, or use:
-  ```
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex"
-  ```
-- **Old page or old behavior after an update:** an earlier copy may still be running. Close it, then clear the cached script and re-run the installer:
-  ```powershell
-  Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*ytdl_menu*" } | Stop-Process -Force
-  Remove-Item "$env:LOCALAPPDATA\ytdl_menu\ytdl_web.py" -ErrorAction SilentlyContinue
-  irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
-  ```
-  Then hard-refresh the browser with Ctrl+F5.
-- **YouTube downloads fail:** make sure a JS runtime (Deno or Node) is installed, and that yt-dlp is up to date. Re-running the installer updates it.
-- **The installer says "using cached copy":** it couldn't reach GitHub. Check your connection and that `ytdl_web.py` is in the repo root.
-- **Reset everything:** delete the `%LOCALAPPDATA%\ytdl_menu` and `%USERPROFILE%\.ytdl_menu` folders and run the installer again.
+Having trouble? Here are some common fixes.
 
-## Notes
+<details>
+<summary><strong>PowerShell says 'irm' or 'iex' is not recognized</strong></summary>
 
-Only download content you have the right to download, and follow the terms of the sites you use.
+You're probably using Command Prompt instead of PowerShell.
+
+Either open PowerShell directly or run this command from Command Prompt:
+
+```cmd
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex"
+```
+
+</details>
+
+<details>
+<summary><strong>Batchy still shows the old version</strong></summary>
+
+An older instance might still be running.
+
+1. Close the existing Batchy instance.
+2. Open PowerShell.
+3. Run:
+
+```powershell
+Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*ytdl_menu*" } | Stop-Process -Force
+
+Remove-Item "$env:LOCALAPPDATA\ytdl_menu\ytdl_web.py" -ErrorAction SilentlyContinue
+
+irm https://raw.githubusercontent.com/MansoorRaj/Batchy/main/install.ps1 | iex
+```
+
+Finally, refresh your browser using `Ctrl + F5`.
+
+</details>
+
+<details>
+<summary><strong>YouTube downloads are failing</strong></summary>
+
+Make sure you have a JavaScript runtime installed (Deno or Node.js
